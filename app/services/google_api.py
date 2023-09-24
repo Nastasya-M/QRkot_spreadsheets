@@ -2,10 +2,12 @@ from datetime import datetime
 
 from aiogoogle import Aiogoogle
 
+from app.api.exceptions import InvalidSizeTable
 from app.core.config import settings
 from app.models.charity_project import CharityProject
 
 FORMAT = "%Y/%m/%d %H:%M:%S"
+SHEETS_ROWS_COUNT = 100
 
 
 async def spreadsheets_create(wrapper_services: Aiogoogle) -> str:
@@ -54,14 +56,13 @@ async def spreadsheets_update_value(
         ['Отчет от', now_date_time],
         ['Топ проектов по скорости закрытия'],
         ['Название проекта', 'Время сбора', 'Описание'],
+        *[list(map(str, project.values())) for project in projects]
     ]
-    for project in projects:
-        new_row = [
-            str(project['name']),
-            str(project['closing_time']),
-            str(project['description'])
-        ]
-        table_values.append(new_row)
+    table_rows = len(table_values)
+    if table_rows > SHEETS_ROWS_COUNT:
+        raise InvalidSizeTable(
+            f'Количество строк в отчете больше {SHEETS_ROWS_COUNT}.')
+
     update_body = {
         'majorDimension': 'ROWS',
         'values': table_values
@@ -69,7 +70,7 @@ async def spreadsheets_update_value(
     await wrapper_services.as_service_account(
         service.spreadsheets.values.update(
             spreadsheetId=spreadsheetid,
-            range='A1:E30',
+            range=f'A1:C{table_rows}',
             valueInputOption='USER_ENTERED',
             json=update_body
         )
