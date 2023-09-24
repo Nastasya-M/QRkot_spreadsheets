@@ -1,6 +1,6 @@
 class InvalidSizeTable(Exception):
     """Исключение возникает при недопустимом размере таблицы."""
-    
+
     def __init__(self, message, status_code=None):
         super().__init__()
         self.message = message
